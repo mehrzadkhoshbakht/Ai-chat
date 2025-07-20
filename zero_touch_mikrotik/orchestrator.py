@@ -1,5 +1,15 @@
 from celery import Celery
 from services.resource_watcher import is_system_idle
+from services.trend_scanner import get_trending_topics
+from services.content_planner import plan_content
+from services.script_generator import generate_script
+from services.voice_generator import generate_voice
+from services.visual_generator import generate_visuals
+from services.video_assembler import assemble_video
+from services.subtitle_translator import generate_subtitles
+from services.publisher import publish_content
+from services.feedback_analytics import analyze_feedback
+from services.storage_manager import manage_storage
 
 app = Celery('zero_touch_mikrotik', broker='redis://localhost:6379/0')
 
@@ -14,17 +24,44 @@ def main_task():
         return
 
     print("Starting content creation pipeline...")
-    # 2. Scan for trending topics
-    # 3. Plan content
-    # 4. Generate script
-    # 5. Generate voice
-    # 6. Generate visuals
-    # 7. Assemble video
-    # 8. Generate subtitles and translations
-    # 9. Publish video
-    # 10. Analyze feedback
-    # 11. Manage storage
-    print("Content creation pipeline finished.")
+
+    try:
+        # 1. Scan for trending topics
+        trending_topics = get_trending_topics()
+
+        # 2. Plan content
+        topic = plan_content(trending_topics)
+
+        # 3. Generate script
+        script_path = generate_script(topic)
+
+        # 4. Generate voice
+        audio_path = generate_voice(script_path)
+
+        # 5. Generate visuals
+        visual_paths = generate_visuals(topic)
+
+        # 6. Assemble video
+        video_path = assemble_video(visual_paths, audio_path, topic)
+
+        # 7. Generate subtitles and translations
+        subtitle_paths = generate_subtitles(audio_path, topic)
+
+        # 8. Publish video
+        publish_content(video_path, topic, subtitle_paths)
+
+        # 9. Analyze feedback
+        analyze_feedback(topic)
+
+        # 10. Manage storage
+        manage_storage(topic)
+
+        print("Content creation pipeline finished successfully.")
+
+    except Exception as e:
+        print(f"An error occurred in the pipeline: {e}")
+        # Add more robust error handling, e.g., send a notification
 
 if __name__ == '__main__':
-    main_task.delay()
+    # For direct execution without Celery worker (for testing)
+    main_task()
