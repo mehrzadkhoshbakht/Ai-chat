@@ -1,4 +1,5 @@
 from celery import Celery
+from services.resource_watcher import is_system_idle
 
 app = Celery('zero_touch_mikrotik', broker='redis://localhost:6379/0')
 
@@ -7,8 +8,12 @@ def main_task():
     """
     The main task that orchestrates the entire content creation process.
     """
+    print("Checking system resources...")
+    if not is_system_idle():
+        print("System is not idle. Postponing content creation.")
+        return
+
     print("Starting content creation pipeline...")
-    # 1. Check system resources
     # 2. Scan for trending topics
     # 3. Plan content
     # 4. Generate script
