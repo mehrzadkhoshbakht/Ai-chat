@@ -1,32 +1,31 @@
 import os
+from openai import OpenAI
 
 def generate_script(topic):
     """
-    Generates a Persian script for the given topic.
+    Generates a Persian script for the given topic using the OpenAI API.
     """
     print(f"Generating script for topic: {topic}...")
-    # This is a placeholder. In a real implementation, you would use a powerful language model
-    # to generate a high-quality, engaging script.
 
-    # Example using OpenAI (requires API key to be set as an environment variable)
-    # from openai import OpenAI
-    # client = OpenAI()
-    # response = client.completions.create(
-    #   model="text-davinci-003",
-    #   prompt=f"یک اسکریپت آموزشی برای ویدیوی یوتیوب در مورد موضوع زیر بنویسید: {topic}",
-    #   max_tokens=500
-    # )
-    # script = response.choices[0].text.strip()
+    # Make sure you have set the OPENAI_API_KEY environment variable
+    client = OpenAI()
 
-    script = f"""
-    سلام به همه! امروز می‌خواهیم در مورد {topic} صحبت کنیم.
-    این یک آموزش مقدماتی است و امیدوارم که برای شما مفید باشد.
-    در این ویدیو، ما به موارد زیر خواهیم پرداخت:
-    - بخش اول: ...
-    - بخش دوم: ...
-    - بخش سوم: ...
-    با ما همراه باشید!
-    """
+    try:
+        response = client.chat.completions.create(
+          model="gpt-3.5-turbo",
+          messages=[
+              {"role": "system", "content": "You are a helpful assistant that writes educational YouTube video scripts in Persian."},
+              {"role": "user", "content": f"یک اسکریپت کامل و جذاب برای یک ویدیوی آموزشی ۵ دقیقه‌ای در مورد موضوع زیر بنویس: '{topic}'. اسکریپت باید شامل مقدمه، بدنه اصلی با توضیحات گام به گام و نتیجه‌گیری باشد."}
+          ]
+        )
+        script = response.choices[0].message.content.strip()
+    except Exception as e:
+        print(f"Error generating script with OpenAI: {e}")
+        print("Falling back to placeholder script.")
+        script = f"""
+        سلام به همه! امروز می‌خواهیم در مورد {topic} صحبت کنیم.
+        (خطا در تولید اسکریپت با هوش مصنوعی)
+        """
 
     script_path = os.path.join("zero_touch_mikrotik", "data", "scripts", f"{topic.replace(' ', '_')}.txt")
     with open(script_path, "w", encoding="utf-8") as f:
