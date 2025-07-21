@@ -14,9 +14,11 @@ RUN apt-get update && apt-get install -y \
     libxext6 \
     && rm -rf /var/lib/apt/lists/*
 
+# Copy the requirements file
+COPY requirements.txt .
+
 # Install Python dependencies
-# We run bootstrap.py's install_dependencies function to ensure all packages are installed
-RUN python bootstrap.py
+RUN pip install --no-cache-dir -r requirements.txt
 
 # The command to run when the container starts
 # This will start a Celery worker to listen for tasks

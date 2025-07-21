@@ -24,17 +24,11 @@ def create_config_files():
     with open("zero_touch_mikrotik/config/hashtags.json", "w") as f:
         f.write("[]")
 
-def install_dependencies():
-    """Installs the necessary dependencies using pip."""
-    print("Installing dependencies...")
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "celery", "redis", "requests", "beautifulsoup4", "google-api-python-client", "moviepy", "stable-diffusion-sdk", "openai", "coqui-tts", "faster-whisper", "psutil", "Pillow", "pytrends", "tweepy", "pydub", "Flask", "textblob", "textblob-fa", "torch"])
-
 def main():
     """Main function for the bootstrap script."""
     print("Setting up Zero-Touch MikroTik AI Content Factory...")
     create_project_structure()
     create_config_files()
-    install_dependencies()
     print("Setup complete!")
 
 if __name__ == "__main__":
