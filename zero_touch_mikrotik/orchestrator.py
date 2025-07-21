@@ -9,10 +9,11 @@ from services.voice_generator import generate_voice
 from services.visual_generator import generate_visuals
 from services.video_assembler import assemble_video
 from services.subtitle_translator import generate_subtitles
-from services.publisher import publish_content
+from services import publisher
 from services.feedback_analytics import analyze_feedback
 from services.storage_manager import manage_storage
 from services.notifier import send_error_notification
+from datetime import datetime, timedelta
 
 app = Celery('zero_touch_mikrotik', broker='redis://redis:6379/0')
 
@@ -59,16 +60,10 @@ def main_task():
         # 7. Generate subtitles and translations
         subtitle_paths = generate_subtitles(audio_path, topic)
 
-        # 8. Publish video
-        youtube_video_id = publish_content(video_path, topic, subtitle_paths)
+        # 8. Schedule all publications and subsequent tasks
+        schedule_publications.delay(video_path, audio_path, topic, subtitle_paths, video_duration_sec)
 
-        # 9. Analyze feedback
-        analyze_feedback(topic, video_duration_sec, youtube_video_id)
-
-        # 10. Manage storage
-        manage_storage(topic)
-
-        print("Content creation pipeline finished successfully.")
+        print("Content creation and publication scheduling complete.")
 
     except Exception as e:
         error_message = f"An error occurred in the pipeline: {e}"
@@ -76,6 +71,52 @@ def main_task():
         print(error_message)
         print(traceback_info)
         send_error_notification(error_message, traceback_info)
+
+@app.task
+def schedule_publications(video_path, audio_path, topic, subtitle_paths, video_duration_sec):
+    """
+    Schedules the publishing tasks and subsequent analysis and cleanup.
+    """
+    # 1. Publish to YouTube immediately.
+    # We use a chain to ensure subsequent tasks only run if YouTube upload is successful.
+    youtube_task = publisher.publish_to_youtube.s(video_path, topic, subtitle_paths)
+
+    # Schedule subsequent tasks in a chain
+    # Note: The result of the YouTube task (video_id) is passed to the next task in the chain.
+    chain = youtube_task | app.signature(
+        'orchestrator.post_youtube_actions',
+        args=(video_path, topic, video_duration_sec)
+    )
+    chain.apply_async()
+
+@app.task
+def post_youtube_actions(youtube_video_id, video_path, topic, video_duration_sec):
+    """
+    Tasks to run after YouTube publication: social media, analysis, and cleanup.
+    """
+    if not youtube_video_id:
+        print("YouTube publication failed. Skipping subsequent tasks.")
+        return
+
+    youtube_url = f"https://www.youtube.com/watch?v={youtube_video_id}"
+
+    # 2. Schedule Instagram Reel for 6 PM
+    now = datetime.utcnow()
+    six_pm_today = now.replace(hour=18, minute=0, second=0, microsecond=0)
+    if now > six_pm_today:
+        six_pm_today += timedelta(days=1) # If it's already past 6 PM, schedule for tomorrow
+    publisher.publish_to_instagram.s(video_path, topic).apply_async(eta=six_pm_today)
+
+    # 3. Schedule Twitter post for 10 AM tomorrow
+    ten_am_tomorrow = (now + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
+    publisher.publish_to_twitter.s(video_path, topic, youtube_url).apply_async(eta=ten_am_tomorrow)
+
+    # 4. Analyze feedback
+    analyze_feedback(topic, video_duration_sec, youtube_video_id)
+
+    # 5. Manage storage
+    manage_storage(topic)
+    print("All post-YouTube actions have been scheduled or executed.")
 
 if __name__ == '__main__':
     # For direct execution without Celery worker (for testing)
