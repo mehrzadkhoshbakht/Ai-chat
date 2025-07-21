@@ -13,16 +13,31 @@
         .logs { background: #2d2d2d; color: #f1f1f1; padding: 15px; border-radius: 4px; height: 300px; overflow-y: scroll; }
         .videos ul { list-style: none; padding: 0; }
         .videos li { background: #eee; padding: 10px; margin-bottom: 5px; border-radius: 4px; }
+        .flash { padding: 10px; margin-bottom: 10px; border-radius: 4px; }
+        .flash.success { background-color: #d4edda; color: #155724; }
+        .flash.error { background-color: #f8d7da; color: #721c24; }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="container">
         <h1>Zero-Touch MikroTik AI Content Factory</h1>
 
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
         <div class="section">
-            <h2>System Status</h2>
+            <h2>System Control</h2>
             <div class="status">
                 <p>Current Status: <strong>{{ status }}</strong></p>
+                <form action="/trigger" method="post" style="display: inline-block;">
+                    <button type="submit">Run Pipeline Now</button>
+                </form>
             </div>
         </div>
 
@@ -33,6 +48,11 @@
                     <p>{{ log }}</p>
                 {% endfor %}
             </div>
+        </div>
+
+        <div class="section">
+            <h2>Performance Over Time (Reward)</h2>
+            <canvas id="performanceChart"></canvas>
         </div>
 
         <div class="section">
@@ -48,5 +68,32 @@
             </div>
         </div>
     </div>
+
+    <script>
+        fetch('/api/performance_data')
+            .then(response => response.json())
+            .then(data => {
+                const ctx = document.getElementById('performanceChart').getContext('2d');
+                const chart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.map(d => new Date(d.timestamp).toLocaleTimeString()),
+                        datasets: [{
+                            label: 'Reward Score',
+                            data: data.map(d => d.reward),
+                            borderColor: 'rgb(75, 192, 192)',
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            });
+    </script>
 </body>
 </html>

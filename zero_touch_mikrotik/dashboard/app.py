@@ -1,13 +1,16 @@
-from flask import Flask, render_template, send_from_directory
+from flask import Flask, render_template, send_from_directory, redirect, url_for, flash, jsonify
 from celery import Celery
 import os
 import glob
+import json
 
 app = Flask(__name__)
-celery_app = Celery('zero_touch_mikrotik', broker='redis://redis:6379/0')
+app.secret_key = os.urandom(24) # Needed for flashing messages
+celery_app = Celery('orchestrator', broker='redis://redis:6379/0', backend='redis://redis:6379/0')
 
 LOG_DIR = '/app/data/logs'
 BACKUP_DIR = '/app/data/backup'
+PERFORMANCE_LOG = '/app/data/performance_log.json'
 
 def get_celery_status():
     try:
@@ -61,9 +64,32 @@ def index():
     videos = get_videos()
     return render_template('index.html', status=status, logs=logs, videos=videos)
 
+@app.route('/trigger', methods=['POST'])
+def trigger_task():
+    """Manually triggers the content creation pipeline."""
+    try:
+        # The task name must match how Celery sees it: <module>.<task_name>
+        celery_app.send_task('orchestrator.main_task')
+        flash('Content creation pipeline has been triggered successfully!', 'success')
+    except Exception as e:
+        flash(f'Error triggering task: {e}', 'error')
+    return redirect(url_for('index'))
+
 @app.route('/videos/<path:filename>')
 def download_video(filename):
     return send_from_directory(BACKUP_DIR, filename, as_attachment=True)
+
+@app.route('/api/performance_data')
+def performance_data():
+    """API endpoint to serve performance data for charts."""
+    if not os.path.exists(PERFORMANCE_LOG):
+        return jsonify([])
+
+    with open(PERFORMANCE_LOG, 'r') as f:
+        data = json.load(f)
+
+    # We only want to return the last 30 data points to keep the chart clean
+    return jsonify(data[-30:])
 
 
 if __name__ == '__main__':
