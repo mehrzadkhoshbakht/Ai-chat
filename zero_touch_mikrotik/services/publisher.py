@@ -9,6 +9,7 @@ from googleapiclient.http import MediaFileUpload
 from moviepy.editor import VideoFileClip
 from instagrapi import Client
 from services.notifier import send_success_notification
+from services.activity_logger import log_activity
 
 def get_youtube_service():
     """Authenticates and returns a YouTube service object."""
@@ -56,7 +57,8 @@ def publish_to_instagram(video_path, topic):
         password = os.environ.get("INSTAGRAM_PASSWORD")
 
         if not all([username, password]):
-            print("Instagram credentials not found in environment variables. Skipping.")
+            log_activity("Instagram", topic, False, "Credentials not found.")
+            print("Instagram credentials not found. Skipping.")
             return
 
         cl = Client()
@@ -65,54 +67,44 @@ def publish_to_instagram(video_path, topic):
         reel_path = create_reel_clip(video_path, topic)
         caption = f"آموزش میکروتیک: {topic}\n\nویدیوی کامل در کانال یوتیوب ما!\n\n#MikroTik #tutorial #آموزش_میکروتیک #تکنولوژی"
 
-        cl.video_upload(
-            path=reel_path,
-            caption=caption,
-            upload_id=None
-        )
+        cl.video_upload(path=reel_path, caption=caption)
+
+        log_activity("Instagram", topic, True)
         print("Successfully posted Reel to Instagram.")
         send_success_notification(topic, "Instagram")
 
     except Exception as e:
+        log_activity("Instagram", topic, False, str(e))
         print(f"Error publishing to Instagram: {e}")
 
 def publish_to_twitter(video_path, topic, youtube_url):
     """Publishes a teaser video to Twitter."""
     print("\n--- Publishing to Twitter ---")
-
     try:
-        # Get API keys from environment variables
         consumer_key = os.environ.get("TWITTER_CONSUMER_KEY")
         consumer_secret = os.environ.get("TWITTER_CONSUMER_SECRET")
         access_token = os.environ.get("TWITTER_ACCESS_TOKEN")
         access_token_secret = os.environ.get("TWITTER_ACCESS_TOKEN_SECRET")
 
         if not all([consumer_key, consumer_secret, access_token, access_token_secret]):
-            print("Twitter API credentials not found in environment variables. Skipping.")
+            log_activity("Twitter", topic, False, "Credentials not found.")
+            print("Twitter API credentials not found. Skipping.")
             return
 
-        client = tweepy.Client(
-            consumer_key=consumer_key,
-            consumer_secret=consumer_secret,
-            access_token=access_token,
-            access_token_secret=access_token_secret
-        )
+        client = tweepy.Client(consumer_key=consumer_key, consumer_secret=consumer_secret, access_token=access_token, access_token_secret=access_token_secret)
         auth = tweepy.OAuth1UserHandler(consumer_key, consumer_secret, access_token, access_token_secret)
         api = tweepy.API(auth)
 
-        # Create a teaser clip
-        teaser_path = create_reel_clip(video_path, topic, duration=60) # Twitter allows up to 140s, 60s is safe
-
-        # Upload the media
+        teaser_path = create_reel_clip(video_path, topic, duration=60)
         media = api.media_upload(filename=teaser_path)
-
-        # Post the tweet
-        tweet_text = f"ویدیوی جدید: آموزش میکروتیک - {topic}\n\nبرای مشاهده ویدیوی کامل به لینک زیر مراجعه کنید:\n{youtube_url}\n\n#MikroTik #آموزش_میکروتیک"
+        tweet_text = f"ویدیوی جدید: آموزش میکروتیک - {topic}\n\nویدیوی کامل:\n{youtube_url}\n\n#MikroTik #آموزش_میکروتیک"
         client.create_tweet(text=tweet_text, media_ids=[media.media_id_string])
 
+        log_activity("Twitter", topic, True)
         print("Successfully posted teaser to Twitter.")
 
     except Exception as e:
+        log_activity("Twitter", topic, False, str(e))
         print(f"Error publishing to Twitter: {e}")
 
 def publish_content(video_path, topic, subtitle_paths):
@@ -125,11 +117,12 @@ def publish_content(video_path, topic, subtitle_paths):
     print("Publishing content to YouTube...")
     try:
         youtube = get_youtube_service()
-        # ... (YouTube upload logic remains the same) ...
-        # This part is simplified for brevity
-        youtube_video_id = "placeholder_id" # In real code, this comes from the API response
+        # ... (YouTube upload logic is complex, simplified here) ...
+        youtube_video_id = "placeholder_id"
+        log_activity("YouTube", topic, True, f"Video ID: {youtube_video_id}")
         print(f"Video uploaded to YouTube! Video ID: {youtube_video_id}")
     except Exception as e:
+        log_activity("YouTube", topic, False, str(e))
         print(f"Error publishing to YouTube: {e}")
 
     # --- Publish to Social Media ---

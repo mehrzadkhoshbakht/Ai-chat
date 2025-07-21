@@ -8,9 +8,10 @@ app = Flask(__name__)
 app.secret_key = os.urandom(24) # Needed for flashing messages
 celery_app = Celery('orchestrator', broker='redis://redis:6379/0', backend='redis://redis:6379/0')
 
-LOG_DIR = '/app/data/logs'
+LOG_DIR = '/app/data/logs' # Kept for raw logs if needed
 BACKUP_DIR = '/app/data/backup'
 PERFORMANCE_LOG = '/app/data/performance_log.json'
+ACTIVITY_LOG = '/app/data/activity.log'
 
 def get_celery_status():
     try:
@@ -27,21 +28,17 @@ def get_celery_status():
     except Exception as e:
         return f"Error connecting to Celery: {e}"
 
-def get_logs():
-    if not os.path.exists(LOG_DIR):
-        return ["Log directory not found."]
+def get_activity_logs():
+    """Reads the structured activity log."""
+    if not os.path.exists(ACTIVITY_LOG):
+        return []
 
-    log_files = glob.glob(os.path.join(LOG_DIR, '*.log'))
-    if not log_files:
-        return ["No log files found."]
+    with open(ACTIVITY_LOG, 'r') as f:
+        # Read last 50 lines to keep the dashboard snappy
+        lines = f.readlines()[-50:]
 
-    # Get the latest log file
-    latest_log_file = max(log_files, key=os.path.getctime)
-
-    with open(latest_log_file, 'r', encoding='utf-8') as f:
-        # Read the last 100 lines
-        lines = f.readlines()[-100:]
-        return [line.strip() for line in lines]
+    logs = [json.loads(line) for line in lines]
+    return sorted(logs, key=lambda x: x['timestamp'], reverse=True)
 
 def get_videos():
     if not os.path.exists(BACKUP_DIR):
@@ -60,9 +57,9 @@ def get_videos():
 @app.route('/')
 def index():
     status = get_celery_status()
-    logs = get_logs()
+    activity_logs = get_activity_logs()
     videos = get_videos()
-    return render_template('index.html', status=status, logs=logs, videos=videos)
+    return render_template('index.html', status=status, activity_logs=activity_logs, videos=videos)
 
 @app.route('/trigger', methods=['POST'])
 def trigger_task():

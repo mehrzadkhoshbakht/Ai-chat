@@ -16,6 +16,11 @@
         .flash { padding: 10px; margin-bottom: 10px; border-radius: 4px; }
         .flash.success { background-color: #d4edda; color: #155724; }
         .flash.error { background-color: #f8d7da; color: #721c24; }
+        .activity-table table { width: 100%; border-collapse: collapse; }
+        .activity-table th, .activity-table td { padding: 8px 12px; border: 1px solid #ddd; text-align: left; }
+        .activity-table th { background-color: #f2f2f2; }
+        .activity-table tr.success { background-color: #f0fff0; }
+        .activity-table tr.failure { background-color: #fff0f0; }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -42,11 +47,34 @@
         </div>
 
         <div class="section">
-            <h2>Recent Logs</h2>
-            <div class="logs">
-                {% for log in logs %}
-                    <p>{{ log }}</p>
-                {% endfor %}
+            <h2>Activity Log</h2>
+            <div class="activity-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Platform</th>
+                            <th>Topic</th>
+                            <th>Status</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in activity_logs %}
+                        <tr class="{{ log.status.lower() }}">
+                            <td>{{ log.timestamp }}</td>
+                            <td>{{ log.platform }}</td>
+                            <td>{{ log.topic }}</td>
+                            <td>{{ log.status }}</td>
+                            <td>{{ log.details }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5">No activity yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
 
