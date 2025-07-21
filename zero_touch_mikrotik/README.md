@@ -88,6 +88,9 @@ This project uses an encrypted secrets file for enhanced security.
     # ... (add all your secrets here as before) ...
     OPENAI_API_KEY=...
     TWITTER_CONSUMER_KEY=...
+    INSTAGRAM_USERNAME=...
+    EMAIL_USER=...
+    API_ACCESS_TOKEN=your_strong_random_api_token
     # etc.
     ```
 
@@ -122,6 +125,35 @@ This project uses an encrypted secrets file for enhanced security.
     ```bash
     docker-compose exec app celery -A orchestrator call orchestrator.main_task
     ```
+
+---
+
+## 🔌 REST API for External Publishing
+
+You can trigger the content creation pipeline externally by sending a POST request to the dashboard's API endpoint.
+
+- **URL:** `http://localhost:5001/api/publish`
+- **Method:** `POST`
+- **Headers:**
+  - `Content-Type: application/json`
+  - `Authorization: Bearer YOUR_API_ACCESS_TOKEN` (replace with the token you set in your `.env` file)
+- **Body (JSON):**
+  ```json
+  {
+    "topic": "Your Custom Video Topic",
+    "length_category": "Short"
+  }
+  ```
+  - `topic` (string, required): The topic for the video.
+  - `length_category` (string, optional): Can be "Short" or "Long". Defaults to "Short".
+
+- **Success Response (200 OK):**
+  ```json
+  {
+    "status": "success",
+    "message": "Content creation for topic 'Your Custom Video Topic' has been queued."
+  }
+  ```
 
 ---
 

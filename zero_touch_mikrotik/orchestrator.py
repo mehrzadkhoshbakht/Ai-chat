@@ -32,9 +32,10 @@ def setup_periodic_tasks(sender, **kwargs):
     )
 
 @app.task
-def main_task():
+def main_task(topic=None, length_category=None):
     """
-    The main task that orchestrates the entire content creation process.
+    The main task that orchestrates the content creation process.
+    Can be run with specific parameters or automatically.
     """
     print("Checking system resources...")
     if not is_system_idle():
@@ -44,11 +45,14 @@ def main_task():
     print("Starting content creation pipeline...")
 
     try:
-        # 1. Scan for trending topics
-        trending_topics = get_trending_topics()
-
-        # 2. Plan content
-        topic, estimated_duration = plan_content(trending_topics)
+        if topic:
+            print(f"Manual run for topic: {topic}")
+            estimated_duration = 180 if length_category == "Short" else 600
+        else:
+            # 1. Scan for trending topics
+            trending_topics = get_trending_topics()
+            # 2. Plan content
+            topic, estimated_duration = plan_content(trending_topics)
 
         # 3. Generate script
         script_path = generate_script(topic, estimated_duration)

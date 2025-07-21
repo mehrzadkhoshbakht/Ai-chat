@@ -1,4 +1,4 @@
-from flask import Flask, render_template, send_from_directory, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, send_from_directory, redirect, url_for, flash, jsonify, request
 from celery import Celery
 import os
 import glob
@@ -94,6 +94,43 @@ def reel_performance_data():
     with open(REEL_PERFORMANCE_LOG, 'r') as f:
         data = json.load(f)
     return jsonify(data[-30:])
+
+@app.route('/api/publish', methods=['POST'])
+def api_publish():
+    """API endpoint to trigger content creation externally."""
+    auth_header = request.headers.get('Authorization')
+    api_token = os.environ.get('API_ACCESS_TOKEN')
+
+    if not api_token:
+        return jsonify({"status": "error", "message": "API is not configured on the server."}), 500
+
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({"status": "error", "message": "Authorization header is missing or invalid."}), 401
+
+    token = auth_header.split(' ')[1]
+    if token != api_token:
+        return jsonify({"status": "error", "message": "Invalid API token."}), 403
+
+    # --- Input Validation ---
+    if not request.is_json:
+        return jsonify({"status": "error", "message": "Request must be JSON."}), 400
+
+    data = request.get_json()
+    topic = data.get('topic')
+
+    if not topic:
+        return jsonify({"status": "error", "message": "Missing 'topic' in request body."}), 400
+
+    # --- Trigger Celery Task ---
+    try:
+        length_category = data.get('length_category', 'Short') # Default to 'Short' if not provided
+        celery_app.send_task(
+            'orchestrator.main_task',
+            kwargs={'topic': topic, 'length_category': length_category}
+        )
+        return jsonify({"status": "success", "message": f"Content creation for topic '{topic}' has been queued."})
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"Failed to queue task: {e}"}), 500
 
 
 if __name__ == '__main__':
