@@ -59,14 +59,17 @@ def main_task():
         # 5. Generate visuals
         visual_paths = generate_visuals(topic)
 
-        # 6. Assemble video
-        video_path, video_duration_sec = assemble_video(visual_paths, audio_path, topic)
-
-        # 7. Generate subtitles and translations
+        # 6. Generate subtitles and translations (SRT path is needed for assembly)
         subtitle_paths = generate_subtitles(audio_path, topic)
+        srt_path_fa = next((s for s in subtitle_paths if s.endswith("_fa.srt")), None)
+        if not srt_path_fa:
+            raise ValueError("Farsi SRT file not found, cannot proceed with video assembly.")
+
+        # 7. Assemble video with burned-in subtitles
+        video_path, video_duration_sec = assemble_video(visual_paths, audio_path, srt_path_fa, topic)
 
         # 8. Schedule all publications and subsequent tasks
-        schedule_publications.delay(video_path, audio_path, topic, subtitle_paths, video_duration_sec)
+        schedule_publications.delay(video_path, topic, subtitle_paths, video_duration_sec)
 
         print("Content creation and publication scheduling complete.")
 
@@ -78,7 +81,7 @@ def main_task():
         send_error_notification(error_message, traceback_info)
 
 @app.task
-def schedule_publications(video_path, audio_path, topic, subtitle_paths, video_duration_sec):
+def schedule_publications(video_path, topic, subtitle_paths, video_duration_sec):
     """
     Schedules the publishing tasks and subsequent analysis and cleanup.
     """

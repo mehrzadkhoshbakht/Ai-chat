@@ -1,46 +1,19 @@
 import os
-from moviepy.editor import ImageClip, AudioFileClip, concatenate_videoclips, CompositeAudioClip
-from pydub import AudioSegment
+from moviepy.editor import ImageClip, AudioFileClip, concatenate_videoclips
+from services.subtitle_translator import create_subtitled_clip
 
-def normalize_audio(audio_path):
-    """Normalizes the audio to a standard level."""
-    print(f"Normalizing audio for {audio_path}...")
-    audio = AudioSegment.from_file(audio_path)
-    normalized_audio = audio.normalize()
-
-    normalized_path = audio_path.replace(".wav", "_normalized.wav")
-    normalized_audio.export(normalized_path, format="wav")
-
-    return normalized_path
-
-def assemble_video(visual_paths, audio_path, topic):
+def assemble_video(visual_paths, audio_path, srt_path, topic):
     """
-    Assembles a video with normalized audio, background music, and a slideshow.
+    Assembles a video with burned-in subtitles.
     """
-    print("Assembling video with enhanced audio...")
+    print("Assembling video with burned-in subtitles...")
 
     if not visual_paths:
         raise ValueError("No visuals provided.")
 
-    # Normalize the main voiceover
-    normalized_voice_path = normalize_audio(audio_path)
-    voice_clip = AudioFileClip(normalized_voice_path)
-    total_duration = voice_clip.duration
-
-    # --- Add Background Music ---
-    background_music_path = os.path.join("zero_touch_mikrotik", "data", "audio", "background.mp3")
-    final_audio = voice_clip
-
-    if os.path.exists(background_music_path):
-        print("Adding background music...")
-        background_clip = AudioFileClip(background_music_path).set_duration(total_duration)
-        # Lower the volume of the background music
-        background_clip = background_clip.volumex(0.1)
-
-        # Combine voiceover and background music
-        final_audio = CompositeAudioClip([voice_clip, background_clip])
-    else:
-        print("Background music not found. Skipping.")
+    # Load the audio to get its duration
+    audio_clip = AudioFileClip(audio_path)
+    total_duration = audio_clip.duration
 
     # --- Create Slideshow ---
     num_visuals = len(visual_paths)
@@ -52,8 +25,14 @@ def assemble_video(visual_paths, audio_path, topic):
         clip = clip.resize(width=1280, height=720)
         clips.append(clip)
 
-    final_video_clip = concatenate_videoclips(clips, method="compose")
-    final_video_clip = final_video_clip.set_audio(final_audio)
+    video_clip = concatenate_videoclips(clips, method="compose")
+
+    # --- Add Subtitles ---
+    # This function now returns a clip with subtitles burned in
+    final_video_clip = create_subtitled_clip(video_clip, srt_path)
+
+    # Set the audio of the final video clip
+    final_video_clip = final_video_clip.set_audio(audio_clip)
 
     video_path = os.path.join("zero_touch_mikrotik", "data", "videos", f"{topic.replace(' ', '_')}.mp4")
 

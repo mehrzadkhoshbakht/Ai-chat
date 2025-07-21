@@ -1,5 +1,7 @@
 import os
 from faster_whisper import WhisperModel
+from moviepy.editor import TextClip, CompositeVideoClip
+from moviepy.video.tools.subtitles import SubtitlesClip
 
 def generate_subtitles(audio_path, topic):
     """
@@ -49,3 +51,24 @@ def format_timestamp(seconds):
     seconds %= 60
     milliseconds = int((seconds - int(seconds)) * 1000)
     return f"{hours:02d}:{minutes:02d}:{int(seconds):02d},{milliseconds:03d}"
+
+def create_subtitled_clip(video_clip, srt_path):
+    """Creates a video clip with burned-in subtitles."""
+
+    # Define a generator for the subtitles
+    generator = lambda txt: TextClip(
+        txt,
+        font='Arial-Bold', # A common font, might need to be installed or changed
+        fontsize=24,
+        color='white',
+        stroke_color='black',
+        stroke_width=1
+    )
+
+    # Create the subtitles clip
+    subtitles = SubtitlesClip(srt_path, generator)
+
+    # Composite the video and subtitles
+    final_clip = CompositeVideoClip([video_clip, subtitles.set_pos(('center', 'bottom'))])
+
+    return final_clip
