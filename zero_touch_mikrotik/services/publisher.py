@@ -5,6 +5,7 @@ from instagrapi import Client
 from googleapiclient.http import MediaFileUpload
 from services.notifier import send_success_notification
 from services.activity_logger import log_activity
+from services.analytics import fetch_and_store_analytics
 from orchestrator import app # Import the Celery app instance
 
 # --- Helper functions (get_youtube_service, create_reel_clip) remain the same ---
@@ -41,7 +42,7 @@ def publish_to_twitter(video_path, topic, youtube_url):
 
 @app.task
 def publish_to_instagram(video_path, topic):
-    """Celery task to publish a Reel to Instagram."""
+    """Celery task to publish a Reel to Instagram and schedule analytics."""
     print(f"Executing Instagram publish task for: {topic}")
     try:
         from services.publisher import create_reel_clip # Local import
@@ -49,11 +50,18 @@ def publish_to_instagram(video_path, topic):
         cl.login(os.environ.get("INSTAGRAM_USERNAME"), os.environ.get("INSTAGRAM_PASSWORD"))
         reel_path = create_reel_clip(video_path, topic)
         caption = f"آموزش میکروتیک: {topic}\n\n#MikroTik #tutorial"
-        cl.video_upload(path=reel_path, caption=caption)
 
-        log_activity("Instagram", topic, True)
+        media = cl.video_upload(path=reel_path, caption=caption)
+        media_pk = media.pk
+
+        log_activity("Instagram", topic, True, f"Media PK: {media_pk}")
         send_success_notification(topic, "Instagram")
-        print("Successfully posted Reel to Instagram.")
+        print(f"Successfully posted Reel to Instagram. PK: {media_pk}")
+
+        # Schedule the analytics task to run in 24 hours
+        fetch_and_store_analytics.apply_async(args=[media_pk, topic], countdown=86400)
+        print(f"Scheduled analytics task for Reel PK {media_pk} in 24 hours.")
+
     except Exception as e:
         log_activity("Instagram", topic, False, str(e))
         print(f"Error in Instagram publish task: {e}")

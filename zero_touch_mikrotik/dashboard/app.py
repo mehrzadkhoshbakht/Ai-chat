@@ -12,6 +12,7 @@ LOG_DIR = '/app/data/logs' # Kept for raw logs if needed
 BACKUP_DIR = '/app/data/backup'
 PERFORMANCE_LOG = '/app/data/performance_log.json'
 ACTIVITY_LOG = '/app/data/activity.log'
+REEL_PERFORMANCE_LOG = '/app/data/reel_performance.json'
 
 def get_celery_status():
     try:
@@ -78,14 +79,20 @@ def download_video(filename):
 
 @app.route('/api/performance_data')
 def performance_data():
-    """API endpoint to serve performance data for charts."""
+    """API endpoint to serve AI model performance data."""
     if not os.path.exists(PERFORMANCE_LOG):
         return jsonify([])
-
     with open(PERFORMANCE_LOG, 'r') as f:
         data = json.load(f)
+    return jsonify(data[-30:])
 
-    # We only want to return the last 30 data points to keep the chart clean
+@app.route('/api/reel_performance')
+def reel_performance_data():
+    """API endpoint to serve Reel performance data."""
+    if not os.path.exists(REEL_PERFORMANCE_LOG):
+        return jsonify([])
+    with open(REEL_PERFORMANCE_LOG, 'r') as f:
+        data = json.load(f)
     return jsonify(data[-30:])
 
 
