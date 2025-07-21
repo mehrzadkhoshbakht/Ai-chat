@@ -1,3 +1,4 @@
+import traceback
 from celery import Celery
 from celery.schedules import crontab
 from services.resource_watcher import is_system_idle
@@ -11,6 +12,7 @@ from services.subtitle_translator import generate_subtitles
 from services.publisher import publish_content
 from services.feedback_analytics import analyze_feedback
 from services.storage_manager import manage_storage
+from services.notifier import send_error_notification
 
 app = Celery('zero_touch_mikrotik', broker='redis://redis:6379/0')
 
@@ -69,8 +71,11 @@ def main_task():
         print("Content creation pipeline finished successfully.")
 
     except Exception as e:
-        print(f"An error occurred in the pipeline: {e}")
-        # Add more robust error handling, e.g., send a notification
+        error_message = f"An error occurred in the pipeline: {e}"
+        traceback_info = traceback.format_exc()
+        print(error_message)
+        print(traceback_info)
+        send_error_notification(error_message, traceback_info)
 
 if __name__ == '__main__':
     # For direct execution without Celery worker (for testing)

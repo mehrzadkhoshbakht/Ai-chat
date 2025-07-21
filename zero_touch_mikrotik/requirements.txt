@@ -20,3 +20,4 @@ textblob
 textblob-fa
 torch
 instagrapi
+yagmail
