@@ -40,10 +40,10 @@ def main_task():
         trending_topics = get_trending_topics()
 
         # 2. Plan content
-        topic = plan_content(trending_topics)
+        topic, estimated_duration = plan_content(trending_topics)
 
         # 3. Generate script
-        script_path = generate_script(topic)
+        script_path = generate_script(topic, estimated_duration)
 
         # 4. Generate voice
         audio_path = generate_voice(script_path)
@@ -52,16 +52,16 @@ def main_task():
         visual_paths = generate_visuals(topic)
 
         # 6. Assemble video
-        video_path = assemble_video(visual_paths, audio_path, topic)
+        video_path, video_duration_sec = assemble_video(visual_paths, audio_path, topic)
 
         # 7. Generate subtitles and translations
         subtitle_paths = generate_subtitles(audio_path, topic)
 
         # 8. Publish video
-        publish_content(video_path, topic, subtitle_paths)
+        youtube_video_id = publish_content(video_path, topic, subtitle_paths)
 
         # 9. Analyze feedback
-        analyze_feedback(topic)
+        analyze_feedback(topic, video_duration_sec, youtube_video_id)
 
         # 10. Manage storage
         manage_storage(topic)

@@ -130,4 +130,4 @@ def publish_content(video_path, topic, subtitle_paths):
         print("Skipping Twitter publish due to missing YouTube URL.")
 
     print("\nPublishing process complete.")
-    return True
+    return youtube_video_id

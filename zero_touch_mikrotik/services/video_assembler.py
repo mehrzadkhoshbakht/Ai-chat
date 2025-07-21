@@ -59,5 +59,6 @@ def assemble_video(visual_paths, audio_path, topic):
 
     final_video_clip.write_videofile(video_path, fps=24, codec='libx264', audio_codec='aac')
 
-    print(f"Video saved to {video_path}")
-    return video_path
+    duration = final_video_clip.duration
+    print(f"Video saved to {video_path} (Duration: {duration}s)")
+    return video_path, duration

@@ -1,64 +1,78 @@
 import random
 import os
-import pickle
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import numpy as np
 
-# We need access to the Q-learning model to make informed decisions
-class QLearningModel:
-    def __init__(self, model_path='q_table.pkl'):
-        self.model_path = os.path.join("zero_touch_mikrotik", "data", model_path)
-        self.q_table = self.load_model()
+# --- Re-using DQN and mappings from feedback_analytics ---
+class DQN(nn.Module):
+    def __init__(self, n_states, n_actions):
+        super(DQN, self).__init__()
+        self.layer1 = nn.Linear(n_states, 128)
+        self.layer2 = nn.Linear(128, 128)
+        self.layer3 = nn.Linear(128, n_actions)
+    def forward(self, x):
+        x = F.relu(self.layer1(x))
+        x = F.relu(self.layer2(x))
+        return self.layer3(x)
 
-    def load_model(self):
-        if os.path.exists(self.model_path):
-            with open(self.model_path, 'rb') as f:
-                return pickle.load(f)
-        return {}
+TOPIC_CATEGORIES = {"General": 0, "Firewall": 1, "VPN": 2, "Routing": 3}
+LENGTH_CATEGORIES = {"Short": 0, "Long": 1}
+POSSIBLE_TOPICS = ["MikroTik Firewall Rules", "MikroTik VPN Setup", "MikroTik OSPF Routing", "MikroTik Basic Setup", "MikroTik VLANs", "MikroTik QoS"]
+ACTION_MAP_REV = {i: topic for i, topic in enumerate(POSSIBLE_TOPICS)}
+STATE_DIM = len(TOPIC_CATEGORIES) + len(LENGTH_CATEGORIES)
+ACTION_DIM = len(POSSIBLE_TOPICS)
 
-    def get_q_value(self, state, action):
-        return self.q_table.get((state, action), 0.0)
-
-    def choose_best_topic(self, topics):
-        if not topics:
-            return None
-
-        state = "topics"
-
-        # Filter out topics that have never been tried before
-        known_topics = [t for t in topics if self.get_q_value(state, t) > 0]
-
-        if not known_topics:
-            # If no topics have a Q-value, or all are 0, pick a random one to explore
-            return random.choice(topics)
-
-        # Choose the topic with the highest Q-value among the known ones
-        q_values = [self.get_q_value(state, t) for t in known_topics]
-        max_q = max(q_values)
-        best_topics = [known_topics[i] for i, q in enumerate(q_values) if q == max_q]
-
-        return random.choice(best_topics)
+def state_to_tensor(category, length):
+    cat_idx = TOPIC_CATEGORIES.get(category, 0)
+    len_idx = LENGTH_CATEGORIES.get(length, 0)
+    state = np.zeros(STATE_DIM)
+    state[cat_idx] = 1
+    state[STATE_DIM - len(LENGTH_CATEGORIES) + len_idx] = 1 # Corrected indexing
+    return torch.FloatTensor(state).unsqueeze(0)
 
 def plan_content(trending_topics):
     """
-    Selects a topic from the list of trending topics using the Q-learning model.
+    Selects a topic using the Deep Q-Network.
     """
-    print("Planning content using Q-learning model...")
+    print("Planning content using DQN...")
 
-    if not trending_topics:
-        print("No trending topics found. Using a default topic.")
-        return "Default Topic: MikroTik Router Configuration"
+    # Load the trained model
+    model_path = os.path.join("zero_touch_mikrotik", "data", "dqn_model.pth")
+    policy_net = DQN(STATE_DIM, ACTION_DIM)
+    if os.path.exists(model_path):
+        policy_net.load_state_dict(torch.load(model_path))
+    policy_net.eval()
 
-    # Use the Q-learning model to choose the best topic
-    model = QLearningModel()
+    # Decide on video length
+    length_category = random.choice(["Short", "Long"])
+    estimated_duration = 180 if length_category == "Short" else 600
 
-    # Add some randomness to explore new topics occasionally
-    if random.uniform(0, 1) < 0.2: # 20% chance to explore a random topic
-        print("Exploring a random topic...")
-        selected_topic = random.choice(trending_topics)
+    # For simplicity, let's try to pick a topic category as well
+    # A more advanced approach would evaluate all possible states
+    topic_category = random.choice(list(TOPIC_CATEGORIES.keys()))
+
+    state = state_to_tensor(topic_category, length_category)
+
+    # Epsilon-greedy selection
+    epsilon = 0.1 # Lower epsilon during planning
+    if random.random() < epsilon:
+        print("Exploring a random action (topic)...")
+        action_idx = random.randrange(ACTION_DIM)
+        selected_topic = ACTION_MAP_REV[action_idx]
     else:
-        print("Choosing best topic based on past performance...")
-        selected_topic = model.choose_best_topic(trending_topics)
-        if selected_topic is None:
-             selected_topic = random.choice(trending_topics)
+        print(f"Choosing best action for state ({topic_category}, {length_category})...")
+        with torch.no_grad():
+            action_idx = policy_net(state).max(1)[1].item()
+            selected_topic = ACTION_MAP_REV[action_idx]
 
-    print(f"Selected topic: {selected_topic}")
-    return selected_topic
+    # We still consider trending topics to add relevance
+    # A simple way is to check if our selected topic is in trends, or pick a trending one
+    if selected_topic not in trending_topics and trending_topics:
+        if random.random() < 0.5: # 50% chance to override with a trending topic
+            print(f"Overriding '{selected_topic}' with a trending topic.")
+            selected_topic = random.choice(trending_topics)
+
+    print(f"Selected topic: {selected_topic} (for a {length_category} video)")
+    return selected_topic, estimated_duration
