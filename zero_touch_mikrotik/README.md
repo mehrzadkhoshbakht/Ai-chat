@@ -69,6 +69,46 @@ zero_touch_mikrotik/
 
 ---
 
+## 🚀 Getting Started with Docker
+
+This project is designed to run with Docker and Docker Compose for easy setup and deployment.
+
+### Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/)
+- [Docker Compose](https://docs.docker.com/compose/install/)
+
+### Configuration
+
+1.  **API Keys:** Before running the application, you need to provide your API keys. Create a file named `.env` in the `zero_touch_mikrotik` directory with the following content:
+
+    ```env
+    OPENAI_API_KEY=your_openai_api_key
+    TWITTER_CONSUMER_KEY=your_twitter_consumer_key
+    TWITTER_CONSUMER_SECRET=your_twitter_consumer_secret
+    TWITTER_ACCESS_TOKEN=your_twitter_access_token
+    TWITTER_ACCESS_TOKEN_SECRET=your_twitter_access_token_secret
+    ```
+
+2.  **YouTube Authentication:** The first time you run the application, you will need to authorize it to access your YouTube account. Follow the on-screen instructions in the terminal where you run `docker-compose`. This will generate a `youtube_credentials.json` file.
+
+### Running the Application
+
+1.  **Build and Run the Containers:**
+    Open a terminal in the `zero_touch_mikrotik` directory and run:
+    ```bash
+    docker-compose up --build
+    ```
+    This will build the Docker image, download the Redis image, and start all the services.
+
+2.  **Triggering a Task Manually (Optional):**
+    If you want to trigger the content creation pipeline manually for testing, you can open another terminal and run:
+    ```bash
+    docker-compose exec app celery -A orchestrator call orchestrator.main_task
+    ```
+
+---
+
 ## 📦 Output
 
 You will receive:

@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  redis:
+    image: "redis:alpine"
+    ports:
+      - "6379:6379"
+
+  app:
+    build: .
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+    environment:
+      # It's better to manage secrets properly, e.g., using Docker secrets or a .env file
+      # For now, you would need to set these in your shell environment before running docker-compose up
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - TWITTER_CONSUMER_KEY=${TWITTER_CONSUMER_KEY}
+      - TWITTER_CONSUMER_SECRET=${TWITTER_CONSUMER_SECRET}
+      - TWITTER_ACCESS_TOKEN=${TWITTER_ACCESS_TOKEN}
+      - TWITTER_ACCESS_TOKEN_SECRET=${TWITTER_ACCESS_TOKEN_SECRET}
+    command: >
+      sh -c "
+        # Wait for Redis to be ready
+        until redis-cli -h redis ping; do
+          >&2 echo 'Redis is unavailable - sleeping';
+          sleep 1;
+        done;
+        >&2 echo 'Redis is up - executing command';
+        # Start the celery worker
+        celery -A orchestrator worker --loglevel=info --concurrency=1
+      "
+
+  scheduler:
+    build: .
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    command: >
+      sh -c "
+        until redis-cli -h redis ping; do
+          sleep 1;
+        done;
+        # Start the celery beat scheduler to trigger the main task periodically
+        celery -A orchestrator beat --loglevel=info
+      "

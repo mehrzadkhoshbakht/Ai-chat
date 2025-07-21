@@ -1,4 +1,5 @@
 from celery import Celery
+from celery.schedules import crontab
 from services.resource_watcher import is_system_idle
 from services.trend_scanner import get_trending_topics
 from services.content_planner import plan_content
@@ -11,7 +12,16 @@ from services.publisher import publish_content
 from services.feedback_analytics import analyze_feedback
 from services.storage_manager import manage_storage
 
-app = Celery('zero_touch_mikrotik', broker='redis://localhost:6379/0')
+app = Celery('zero_touch_mikrotik', broker='redis://redis:6379/0')
+
+@app.on_after_configure.connect
+def setup_periodic_tasks(sender, **kwargs):
+    # Add the main task to the schedule to run every 24 hours
+    sender.add_periodic_task(
+        crontab(hour=0, minute=0), # Executes daily at midnight
+        main_task.s(),
+        name='create content every 24 hours'
+    )
 
 @app.task
 def main_task():
