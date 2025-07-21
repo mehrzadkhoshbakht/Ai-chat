@@ -19,3 +19,4 @@ Flask
 textblob
 textblob-fa
 torch
+instagrapi

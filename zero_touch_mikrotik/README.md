@@ -84,10 +84,16 @@ This project is designed to run with Docker and Docker Compose for easy setup an
 
     ```env
     OPENAI_API_KEY=your_openai_api_key
+
+    # Twitter API Credentials
     TWITTER_CONSUMER_KEY=your_twitter_consumer_key
     TWITTER_CONSUMER_SECRET=your_twitter_consumer_secret
     TWITTER_ACCESS_TOKEN=your_twitter_access_token
     TWITTER_ACCESS_TOKEN_SECRET=your_twitter_access_token_secret
+
+    # Instagram Credentials
+    INSTAGRAM_USERNAME=your_instagram_username
+    INSTAGRAM_PASSWORD=your_instagram_password
     ```
 
 2.  **YouTube Authentication:** The first time you run the application, you will need to authorize it to access your YouTube account. Follow the on-screen instructions in the terminal where you run `docker-compose`. This will generate a `youtube_credentials.json` file.
