@@ -1,44 +1,74 @@
 import json
+import os
 import random
+import pickle
+
+class QLearningModel:
+    def __init__(self, model_path='q_table.pkl', learning_rate=0.1, discount_factor=0.9, exploration_rate=0.1):
+        self.model_path = os.path.join("zero_touch_mikrotik", "data", model_path)
+        self.lr = learning_rate
+        self.gamma = discount_factor
+        self.epsilon = exploration_rate
+        self.q_table = self.load_model()
+
+    def load_model(self):
+        if os.path.exists(self.model_path):
+            with open(self.model_path, 'rb') as f:
+                return pickle.load(f)
+        return {}
+
+    def save_model(self):
+        with open(self.model_path, 'wb') as f:
+            pickle.dump(self.q_table, f)
+
+    def get_q_value(self, state, action):
+        return self.q_table.get((state, action), 0.0)
+
+    def choose_action(self, state, actions):
+        if random.uniform(0, 1) < self.epsilon:
+            return random.choice(actions) # Explore
+
+        q_values = [self.get_q_value(state, a) for a in actions]
+        max_q = max(q_values)
+
+        # If multiple actions have the same max Q-value, choose one randomly
+        best_actions = [actions[i] for i, q in enumerate(q_values) if q == max_q]
+        return random.choice(best_actions)
+
+    def update_q_value(self, state, action, reward, next_state_best_q):
+        old_value = self.get_q_value(state, action)
+        new_value = old_value + self.lr * (reward + self.gamma * next_state_best_q - old_value)
+        self.q_table[(state, action)] = new_value
 
 def analyze_feedback(topic):
     """
-    Analyzes feedback and engagement for a given topic.
+    Analyzes feedback and updates the Q-learning model.
     """
     print("Analyzing feedback...")
 
     # --- Placeholder for fetching real analytics ---
-    # In a real implementation, you'd use APIs from YouTube, Twitter, etc.
-    # to get CTR, watch time, comments, likes, etc.
-
-    # Simulate some feedback data
     feedback = {
         "topic": topic,
-        "ctr": round(random.uniform(0.02, 0.10), 3),
-        "watch_time_avg_sec": random.randint(60, 300),
-        "likes": random.randint(50, 500),
-        "comments": random.randint(5, 50)
+        "ctr": round(random.uniform(0.01, 0.15), 3),
+        "watch_time_avg_sec": random.randint(30, 400),
     }
-
     print(f"Feedback for '{topic}': {feedback}")
 
-    # --- Q-learning / AI Planner Update Placeholder ---
-    # Based on the feedback, the AI would update its content strategy.
-    # For example, if CTR is high, the topic might be considered successful.
-    # If watch time is low, the script or visuals might need improvement.
+    # --- Update Q-learning Model ---
+    model = QLearningModel()
 
-    # Example: Update hashtag performance
-    # This is a very simplistic model. A real Q-learning implementation would be much more complex.
-    if feedback["ctr"] > 0.05:
-        print("Good performance. Reinforcing related hashtags.")
-        # Logic to update hashtags.json based on performance
-        with open("zero_touch_mikrotik/config/hashtags.json", "r+") as f:
-            # This is just a placeholder, not a real update
-            hashtags = json.load(f)
-            # hashtags.append(f"#{topic.replace(' ', '')}_popular")
-            # f.seek(0)
-            # json.dump(hashtags, f)
-            pass
+    # Define state, action, and reward
+    state = "topics" # A general state for all topics
+    action = topic
 
-    print("Feedback analysis complete.")
+    # Simple reward function
+    reward = (feedback["ctr"] * 100) + (feedback["watch_time_avg_sec"] / 10)
+
+    # In a more complex model, next_state would be different. Here, we assume it's the same.
+    # We don't have a future state, so the next_state_best_q is 0.
+    model.update_q_value(state, action, reward, 0)
+
+    model.save_model()
+    print("Q-learning model updated and saved.")
+
     return feedback

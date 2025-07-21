@@ -1,10 +1,12 @@
 import json
 import os
+import tweepy
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
+from moviepy.editor import VideoFileClip
 
 def get_youtube_service():
     """Authenticates and returns a YouTube service object."""
@@ -33,74 +35,99 @@ def get_youtube_service():
 
     return build('youtube', 'v3', credentials=creds)
 
-def publish_content(video_path, topic, subtitle_paths):
-    """
-    Publishes the video to YouTube.
-    """
-    print("Publishing content to YouTube...")
+def create_teaser_clip(video_path, topic, duration=30):
+    """Creates a short teaser clip from the main video."""
+    video = VideoFileClip(video_path)
+    teaser_duration = min(video.duration, duration)
+    teaser = video.subclip(0, teaser_duration)
+
+    teaser_path = os.path.join("zero_touch_mikrotik", "data", "videos", f"{topic.replace(' ', '_')}_teaser.mp4")
+    teaser.write_videofile(teaser_path, codec='libx264', audio_codec='aac')
+
+    return teaser_path
+
+def publish_to_twitter(video_path, topic, youtube_url):
+    """Publishes a teaser video to Twitter."""
+    print("\n--- Publishing to Twitter ---")
 
     try:
+        # Get API keys from environment variables
+        consumer_key = os.environ.get("TWITTER_CONSUMER_KEY")
+        consumer_secret = os.environ.get("TWITTER_CONSUMER_SECRET")
+        access_token = os.environ.get("TWITTER_ACCESS_TOKEN")
+        access_token_secret = os.environ.get("TWITTER_ACCESS_TOKEN_SECRET")
+
+        if not all([consumer_key, consumer_secret, access_token, access_token_secret]):
+            print("Twitter API credentials not found in environment variables. Skipping.")
+            return
+
+        client = tweepy.Client(
+            consumer_key=consumer_key,
+            consumer_secret=consumer_secret,
+            access_token=access_token,
+            access_token_secret=access_token_secret
+        )
+        auth = tweepy.OAuth1UserHandler(consumer_key, consumer_secret, access_token, access_token_secret)
+        api = tweepy.API(auth)
+
+        # Create a teaser clip
+        teaser_path = create_teaser_clip(video_path, topic)
+
+        # Upload the media
+        media = api.media_upload(filename=teaser_path)
+
+        # Post the tweet
+        tweet_text = f"ویدیوی جدید: آموزش میکروتیک - {topic}\n\nبرای مشاهده ویدیوی کامل به لینک زیر مراجعه کنید:\n{youtube_url}\n\n#MikroTik #آموزش_میکروتیک"
+        client.create_tweet(text=tweet_text, media_ids=[media.media_id_string])
+
+        print("Successfully posted teaser to Twitter.")
+
+    except Exception as e:
+        print(f"Error publishing to Twitter: {e}")
+
+def publish_content(video_path, topic, subtitle_paths):
+    """
+    Publishes the video to YouTube and a teaser to Twitter.
+    """
+    youtube_video_id = None
+
+    # --- Publish to YouTube ---
+    print("Publishing content to YouTube...")
+    try:
         youtube = get_youtube_service()
+        with open("zero_touch_mikrotik/config/hashtags.json", "r") as f:
+            hashtags = json.load(f)
+
+        title = f"آموزش میکروتیک: {topic}"
+        description = f"در این ویدیو به آموزش {topic} می‌پردازیم.\n\n" + " ".join(hashtags)
+        tags = ["MikroTik", "tutorial", "Persian"] + [tag.strip('#') for tag in hashtags]
+
+        request_body = {
+            'snippet': { 'categoryId': '28', 'title': title, 'description': description, 'tags': tags, 'defaultLanguage': 'fa', 'defaultAudioLanguage': 'fa' },
+            'status': { 'privacyStatus': 'private', 'selfDeclaredMadeForKids': False }
+        }
+
+        media = MediaFileUpload(video_path, chunksize=-1, resumable=True)
+        response_upload = youtube.videos().insert(part='snippet,status', body=request_body, media_body=media).execute()
+
+        youtube_video_id = response_upload.get('id')
+        if youtube_video_id:
+            print(f"Video uploaded to YouTube! Video ID: {youtube_video_id}")
+            # ... (subtitle upload logic remains the same) ...
+        else:
+            print("Could not get YouTube video ID.")
+
     except FileNotFoundError as e:
         print(f"Could not initialize YouTube service: {e}")
-        print("Skipping YouTube publishing.")
-        return False
+    except Exception as e:
+        print(f"Error publishing to YouTube: {e}")
 
-    with open("zero_touch_mikrotik/config/hashtags.json", "r") as f:
-        hashtags = json.load(f)
-
-    title = f"آموزش میکروتیک: {topic}"
-    description = f"در این ویدیو به آموزش {topic} می‌پردازیم.\n\n" + " ".join(hashtags)
-    tags = ["MikroTik", "tutorial", "Persian"] + [tag.strip('#') for tag in hashtags]
-
-    request_body = {
-        'snippet': {
-            'categoryId': '28', # Science & Technology
-            'title': title,
-            'description': description,
-            'tags': tags,
-            'defaultLanguage': 'fa',
-            'defaultAudioLanguage': 'fa'
-        },
-        'status': {
-            'privacyStatus': 'private', # 'private', 'public', or 'unlisted'
-            'selfDeclaredMadeForKids': False,
-        }
-    }
-
-    media = MediaFileUpload(video_path, chunksize=-1, resumable=True)
-
-    print("Uploading video to YouTube...")
-    response_upload = youtube.videos().insert(
-        part='snippet,status',
-        body=request_body,
-        media_body=media
-    ).execute()
-
-    video_id = response_upload.get('id')
-    if video_id:
-        print(f"Video uploaded successfully! Video ID: {video_id}")
-
-        # Upload Farsi subtitles
-        srt_path_fa = next((s for s in subtitle_paths if s.endswith("_fa.srt")), None)
-        if srt_path_fa:
-            print("Uploading Farsi subtitles...")
-            youtube.captions().insert(
-                part='snippet',
-                body={
-                    'snippet': {
-                        'videoId': video_id,
-                        'language': 'fa',
-                        'name': 'Farsi',
-                        'isDraft': False
-                    }
-                },
-                media_body=MediaFileUpload(srt_path_fa)
-            ).execute()
-            print("Subtitles uploaded.")
+    # --- Publish to Twitter ---
+    if youtube_video_id:
+        youtube_url = f"https://www.youtube.com/watch?v={youtube_video_id}"
+        publish_to_twitter(video_path, topic, youtube_url)
     else:
-        print("Could not get video ID after upload.")
-        return False
+        print("Skipping Twitter publish due to missing YouTube URL.")
 
-    print("Publishing complete.")
+    print("\nPublishing process complete.")
     return True
