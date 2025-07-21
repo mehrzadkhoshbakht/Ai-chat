@@ -21,3 +21,4 @@ textblob-fa
 torch
 instagrapi
 yagmail
+cryptography

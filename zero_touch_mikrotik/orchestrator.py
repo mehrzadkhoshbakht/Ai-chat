@@ -1,6 +1,11 @@
 import traceback
 from celery import Celery
 from celery.schedules import crontab
+from services.decrypt_secrets import load_decrypted_env
+
+# Load decrypted environment variables at the very beginning
+load_decrypted_env()
+
 from services.resource_watcher import is_system_idle
 from services.trend_scanner import get_trending_topics
 from services.content_planner import plan_content

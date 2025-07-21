@@ -78,31 +78,35 @@ This project is designed to run with Docker and Docker Compose for easy setup an
 - [Docker](https://docs.docker.com/get-docker/)
 - [Docker Compose](https://docs.docker.com/compose/install/)
 
-### Configuration
+### Configuration & Security
 
-1.  **API Keys:** Before running the application, you need to provide your API keys. Create a file named `.env` in the `zero_touch_mikrotik` directory with the following content:
+This project uses an encrypted secrets file for enhanced security.
 
+1.  **Create a Plaintext `.env` file:**
+    First, create a temporary `.env` file in the `zero_touch_mikrotik` directory with all your secrets:
     ```env
-    OPENAI_API_KEY=your_openai_api_key
-
-    # Twitter API Credentials
-    TWITTER_CONSUMER_KEY=your_twitter_consumer_key
-    TWITTER_CONSUMER_SECRET=your_twitter_consumer_secret
-    TWITTER_ACCESS_TOKEN=your_twitter_access_token
-    TWITTER_ACCESS_TOKEN_SECRET=your_twitter_access_token_secret
-
-    # Instagram Credentials
-    INSTAGRAM_USERNAME=your_instagram_username
-    INSTAGRAM_PASSWORD=your_instagram_password
-
-    # Email Notification Credentials (for success and error reporting)
-    # Note: For Gmail, you may need to use an "App Password"
-    EMAIL_USER=your_email@gmail.com
-    EMAIL_PASSWORD=your_email_app_password
-    EMAIL_TO=recipient_email@example.com # This address will receive all notifications
+    # ... (add all your secrets here as before) ...
+    OPENAI_API_KEY=...
+    TWITTER_CONSUMER_KEY=...
+    # etc.
     ```
 
-2.  **YouTube Authentication:** The first time you run the application, you will need to authorize it to access your YouTube account. Follow the on-screen instructions in the terminal where you run `docker-compose`. This will generate a `youtube_credentials.json` file.
+2.  **Encrypt the `.env` file:**
+    Run the encryption script from within the `zero_touch_mikrotik` directory. You will be prompted to enter a master password.
+    ```bash
+    python encrypt_secrets.py
+    ```
+    This will create an `.env.encrypted` file. You can now **securely delete the plaintext `.env` file**.
+
+3.  **Set the Master Password:**
+    The application needs the master password to decrypt the secrets at runtime. Set this password as an environment variable named `SECRET_MASTER_PASSWORD` before running Docker. You can do this by creating a new, separate `.env` file in the root of the project (the one *containing* the `zero_touch_mikrotik` directory) with the following content:
+    ```env
+    # This .env file is ONLY for docker-compose to read the master password
+    SECRET_MASTER_PASSWORD=your_super_secret_password
+    ```
+    *Note: This file should be added to your global `.gitignore` and should not be committed to your repository.*
+
+4.  **YouTube Authentication:** The first time you run the application, you will still need to authorize it to access your YouTube account. Follow the on-screen instructions in the terminal. This will generate a `youtube_credentials.json` file.
 
 ### Running the Application
 

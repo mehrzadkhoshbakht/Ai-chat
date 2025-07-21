@@ -13,13 +13,8 @@ services:
     depends_on:
       - redis
     environment:
-      # It's better to manage secrets properly, e.g., using Docker secrets or a .env file
-      # For now, you would need to set these in your shell environment before running docker-compose up
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - TWITTER_CONSUMER_KEY=${TWITTER_CONSUMER_KEY}
-      - TWITTER_CONSUMER_SECRET=${TWITTER_CONSUMER_SECRET}
-      - TWITTER_ACCESS_TOKEN=${TWITTER_ACCESS_TOKEN}
-      - TWITTER_ACCESS_TOKEN_SECRET=${TWITTER_ACCESS_TOKEN_SECRET}
+      # The master password to decrypt the .env.encrypted file
+      - SECRET_MASTER_PASSWORD=${SECRET_MASTER_PASSWORD}
     command: >
       sh -c "
         # Wait for Redis to be ready
@@ -39,7 +34,7 @@ services:
     depends_on:
       - redis
     environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - SECRET_MASTER_PASSWORD=${SECRET_MASTER_PASSWORD}
     command: >
       sh -c "
         until redis-cli -h redis ping; do
