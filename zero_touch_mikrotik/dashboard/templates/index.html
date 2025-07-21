@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zero-Touch MikroTik Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1, h2 { color: #333; }
+        .section { margin-bottom: 20px; }
+        .status { padding: 15px; background-color: #e7f3fe; border-left: 6px solid #2196F3; }
+        .logs { background: #2d2d2d; color: #f1f1f1; padding: 15px; border-radius: 4px; height: 300px; overflow-y: scroll; }
+        .videos ul { list-style: none; padding: 0; }
+        .videos li { background: #eee; padding: 10px; margin-bottom: 5px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Zero-Touch MikroTik AI Content Factory</h1>
+
+        <div class="section">
+            <h2>System Status</h2>
+            <div class="status">
+                <p>Current Status: <strong>{{ status }}</strong></p>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Recent Logs</h2>
+            <div class="logs">
+                {% for log in logs %}
+                    <p>{{ log }}</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Generated Videos</h2>
+            <div class="videos">
+                <ul>
+                    {% for video in videos %}
+                        <li><a href="{{ url_for('download_video', filename=video) }}">{{ video }}</a></li>
+                    {% else %}
+                        <li>No videos found yet.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

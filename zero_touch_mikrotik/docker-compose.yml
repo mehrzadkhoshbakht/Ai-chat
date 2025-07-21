@@ -48,3 +48,21 @@ services:
         # Start the celery beat scheduler to trigger the main task periodically
         celery -A orchestrator beat --loglevel=info
       "
+
+  dashboard:
+    build: .
+    volumes:
+      - .:/app
+    ports:
+      - "5001:5001"
+    depends_on:
+      - redis
+      - app
+    command: >
+      sh -c "
+        until redis-cli -h redis ping; do
+          sleep 1;
+        done;
+        # Start the Flask dashboard
+        python dashboard/app.py
+      "

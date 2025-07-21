@@ -27,7 +27,7 @@ def create_config_files():
 def install_dependencies():
     """Installs the necessary dependencies using pip."""
     print("Installing dependencies...")
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "celery", "redis", "requests", "beautifulsoup4", "google-api-python-client", "moviepy", "stable-diffusion-sdk", "openai", "coqui-tts", "faster-whisper", "psutil", "Pillow", "pytrends", "tweepy", "pydub"])
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "celery", "redis", "requests", "beautifulsoup4", "google-api-python-client", "moviepy", "stable-diffusion-sdk", "openai", "coqui-tts", "faster-whisper", "psutil", "Pillow", "pytrends", "tweepy", "pydub", "Flask"])
 
 def main():
     """Main function for the bootstrap script."""
