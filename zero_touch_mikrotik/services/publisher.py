@@ -8,6 +8,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from moviepy.editor import VideoFileClip
 from instagrapi import Client
+from services.notifier import send_success_notification
 
 def get_youtube_service():
     """Authenticates and returns a YouTube service object."""
@@ -70,6 +71,7 @@ def publish_to_instagram(video_path, topic):
             upload_id=None
         )
         print("Successfully posted Reel to Instagram.")
+        send_success_notification(topic, "Instagram")
 
     except Exception as e:
         print(f"Error publishing to Instagram: {e}")

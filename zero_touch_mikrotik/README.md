@@ -95,11 +95,11 @@ This project is designed to run with Docker and Docker Compose for easy setup an
     INSTAGRAM_USERNAME=your_instagram_username
     INSTAGRAM_PASSWORD=your_instagram_password
 
-    # Email Notification Credentials (for error reporting)
+    # Email Notification Credentials (for success and error reporting)
     # Note: For Gmail, you may need to use an "App Password"
     EMAIL_USER=your_email@gmail.com
     EMAIL_PASSWORD=your_email_app_password
-    EMAIL_TO=recipient_email@example.com
+    EMAIL_TO=recipient_email@example.com # This address will receive all notifications
     ```
 
 2.  **YouTube Authentication:** The first time you run the application, you will need to authorize it to access your YouTube account. Follow the on-screen instructions in the terminal where you run `docker-compose`. This will generate a `youtube_credentials.json` file.
