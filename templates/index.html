@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-chat</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body class="bg-gray-900 text-white">
+    <div class="container mx-auto p-8">
+        <h1 class="text-4xl font-bold text-center mb-8">AI-chat Dashboard</h1>
+
+        <!-- System Status -->
+        <div class="bg-gray-800 rounded-lg p-6 mb-8">
+            <h2 class="text-2xl font-semibold mb-4">System Status</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="flex items-center space-x-2">
+                    <span class="bg-green-500 h-4 w-4 rounded-full"></span>
+                    <span>AI Engine</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="bg-green-500 h-4 w-4 rounded-full"></span>
+                    <span>TTS Service</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="bg-red-500 h-4 w-4 rounded-full"></span>
+                    <span>YouTube API</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="bg-green-500 h-4 w-4 rounded-full"></span>
+                    <span>Telegram Bot</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Input -->
+        <div class="bg-gray-800 rounded-lg p-6 mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Create New Content</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="keywords" class="block text-sm font-medium mb-2">Keywords</label>
+                    <input type="text" id="keywords" name="keywords" class="w-full bg-gray-700 border border-gray-600 rounded-md p-2" placeholder="e.g., MikroTik, firewall, VPN">
+                </div>
+                <div>
+                    <label for="platform" class="block text-sm font-medium mb-2">Platform</label>
+                    <select id="platform" name="platform" class="w-full bg-gray-700 border border-gray-600 rounded-md p-2">
+                        <option>YouTube</option>
+                        <option>Telegram</option>
+                        <option>X (Twitter)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="bg-gray-800 rounded-lg p-6 mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Actions</h2>
+            <div class="flex space-x-4">
+                <button class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
+                    Generate Video
+                </button>
+                <button class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded">
+                    Analyze Trends
+                </button>
+                <button class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded">
+                    Push to Platform
+                </button>
+            </div>
+        </div>
+
+        <!-- Content Generation Progress -->
+        <div class="bg-gray-800 rounded-lg p-6">
+            <h2 class="text-2xl font-semibold mb-4">Content Generation</h2>
+            <div class="w-full bg-gray-700 rounded-full h-4">
+                <div class="bg-blue-500 h-4 rounded-full" style="width: 45%"></div>
+            </div>
+            <p class="text-center mt-2">Generating "MikroTik Router Setup"...</p>
+        </div>
+    </div>
+</body>
+</html>
