@@ -24,3 +24,7 @@ python-telegram-bot
 # Google
 google-api-python-client
 google-auth-oauthlib
+
+# Environment
+python-dotenv
+tenacity

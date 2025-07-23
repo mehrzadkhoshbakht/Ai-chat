@@ -1,7 +1,0 @@
-openai:
-  api_key: "YOUR_OPENAI_API_KEY"
-telegram:
-  api_token: "YOUR_TELEGRAM_API_TOKEN"
-  chat_id: "YOUR_TELEGRAM_CHAT_ID"
-youtube:
-  client_secrets_file: "client_secrets.json"

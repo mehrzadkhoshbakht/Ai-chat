@@ -1,7 +1,6 @@
 import logging
 import os
-import yaml
-
+from dotenv import load_dotenv
 from flask import Flask, render_template, request
 
 from modules.chat_engine import ChatEngine
@@ -10,34 +9,20 @@ from modules.video_generator import VideoGenerator
 from modules.scheduler import Scheduler
 from modules.uploader import Uploader
 
+# --- Load Environment Variables ---
+load_dotenv()
+
 # --- Flask App ---
 app = Flask(__name__)
 scheduler = Scheduler()
 uploader = None
-
-# --- Configuration ---
-CONFIG_PATH = "config/config.yaml"
-
-def load_config():
-    """Loads the YAML configuration file."""
-    if not os.path.exists(CONFIG_PATH):
-        # Create a default config if it doesn't exist
-        default_config = {
-            "telegram": {"api_token": "YOUR_TELEGRAM_API_TOKEN", "chat_id": "YOUR_TELEGRAM_CHAT_ID"},
-            "elevenlabs": {"api_key": "YOUR_ELEVENLABS_API_KEY"},
-            "youtube": {"client_secrets_file": "client_secrets.json"}
-        }
-        with open(CONFIG_PATH, "w") as f:
-            yaml.dump(default_config, f)
-    with open(CONFIG_PATH, "r") as f:
-        return yaml.safe_load(f)
 
 # --- Logging ---
 def setup_logging():
     """Sets up the logging configuration."""
     logging.basicConfig(
         level=logging.INFO,
-        format="%(asctime)s - %(levelname)s - %(message)s",
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         handlers=[
             logging.FileHandler("app.log"),
             logging.StreamHandler()
@@ -57,10 +42,15 @@ def generate():
     keywords = data.get("keywords")
     platform = data.get("platform")
 
-    task = {"type": "generate_video", "keywords": keywords, "platform": platform}
-    scheduler.add_task(task)
+    chat_engine = ChatEngine()
+    script = chat_engine.generate_video_script(keywords, platform)
 
-    return {"message": "Task added to the queue."}
+    if script:
+        task = {"type": "generate_video", "script": script, "platform": platform}
+        scheduler.add_task(task)
+        return {"message": "Task added to the queue."}
+    else:
+        return {"error": "Failed to generate script."}
 
 @app.route("/api/status")
 def status():
@@ -103,13 +93,12 @@ def main():
     setup_logging()
     logging.info("Starting AI-chat application...")
 
-    config = load_config()
-    uploader = Uploader(config)
+    uploader = Uploader()
 
     # Initialize modules
-    # chat_engine = ChatEngine(config)
-    # tts_engine = TextToSpeech(config)
-    # video_generator = VideoGenerator(config)
+    # chat_engine = ChatEngine()
+    # tts_engine = TextToSpeech()
+    # video_generator = VideoGenerator()
 
     app.run(host="0.0.0.0", port=8080)
 
