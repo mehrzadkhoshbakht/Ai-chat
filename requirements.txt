@@ -1,1 +1,20 @@
+# Core
 requests
+PyYAML
+
+# AI & Machine Learning
+tensorflow
+scikit-learn
+
+# Text-to-Speech
+gTTS
+elevenlabs
+
+# Video Processing
+moviepy
+
+# Database
+SQLAlchemy
+
+# Telegram
+python-telegram-bot
